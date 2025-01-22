@@ -40,6 +40,33 @@ export function Calendar({ etapas, onClose }: CalendarProps) {
     setSelectedDay(null);
   };
 
+  const hasEtapasInMonth = (month: number, year: number) => {
+    return etapas.some(etapa => {
+      const etapaDate = new Date(etapa.data_publicado);
+      return etapaDate.getMonth() === month && etapaDate.getFullYear() === year;
+    });
+  };
+
+  const renderMonthSelector = () => {
+    return (
+      <select 
+        value={currentDate.getMonth()}
+        onChange={(e) => setCurrentDate(new Date(currentDate.getFullYear(), parseInt(e.target.value), 1))}
+        className="bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
+      >
+        {months.map((month, index) => (
+          <option 
+            key={month} 
+            value={index}
+            className={`${hasEtapasInMonth(index, currentDate.getFullYear()) ? 'font-bold' : ''}`}
+          >
+            {month} {hasEtapasInMonth(index, currentDate.getFullYear()) ? '•' : ''}
+          </option>
+        ))}
+      </select>
+    );
+  };
+
   const renderCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -69,7 +96,7 @@ export function Calendar({ etapas, onClose }: CalendarProps) {
           } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
         >
           <div className="flex justify-between items-start">
-            <span className="font-medium">{day}</span>
+            <span className="font-medium text-gray-800 dark:text-white">{day}</span>
             {hasEtapas && (
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             )}
@@ -139,53 +166,37 @@ export function Calendar({ etapas, onClose }: CalendarProps) {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => changeMonth(-1)}
-                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
-              <h3 className="text-lg font-medium">
-                {months[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </h3>
+              <div className="flex items-center gap-2">
+                {renderMonthSelector()}
+                <span className="text-gray-800 dark:text-white font-medium">
+                  {currentDate.getFullYear()}
+                </span>
+              </div>
               <button
                 onClick={() => changeMonth(1)}
-                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
               >
-                <ChevronRight size={20} />
+                <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
             </div>
-            <select
-              value={`${currentDate.getMonth()},${currentDate.getFullYear()}`}
-              onChange={(e) => {
-                const [month, year] = e.target.value.split(',').map(Number);
-                setCurrentDate(new Date(year, month, 1));
-                setSelectedDay(null);
-              }}
-              className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
-            >
-              {Array.from({ length: 24 }, (_, i) => {
-                const date = new Date();
-                date.setMonth(date.getMonth() - 6 + i);
-                return (
-                  <option key={i} value={`${date.getMonth()},${date.getFullYear()}`}>
-                    {months[date.getMonth()]} {date.getFullYear()}
-                  </option>
-                );
-              })}
-            </select>
           </div>
         </div>
         
         <div className="p-6">
           {view === 'calendar' ? (
             <>
-              <div className="grid grid-cols-7 gap-px mb-px">
+              <div className="grid grid-cols-7 gap-1">
                 {weekDays.map(day => (
-                  <div key={day} className="text-center py-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <div key={day} className="text-center py-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                     {day}
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+              <div className="grid grid-cols-7 gap-1 bg-gray-200 dark:bg-gray-700">
                 {renderCalendarDays()}
               </div>
               {selectedDay && filteredEtapas.length > 0 && (

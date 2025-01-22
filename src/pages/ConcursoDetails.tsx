@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, ExternalLink, ArrowUpDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Concurso, Etapa, Theme } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
@@ -13,7 +13,8 @@ export function ConcursoDetails() {
   const [concurso, setConcurso] = useState<Concurso | null>(null);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [isAscending, setIsAscending] = useState(false);
   const [filters, setFilters] = useState({
     secao: '',
     etapa: '',
@@ -24,11 +25,15 @@ export function ConcursoDetails() {
   useEffect(() => {
     loadConcurso();
     
+    // Define dark theme as default if no theme is set
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme) {
       setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else {
+      setTheme('dark');
+      localStorage.setItem('theme', 'dark');
     }
+    document.documentElement.classList.toggle('dark', true);
   }, []);
 
   async function loadConcurso() {
@@ -72,7 +77,13 @@ export function ConcursoDetails() {
     return matchesSecao && matchesEtapa && matchesDataInicio && matchesDataFim;
   });
 
-  const etapasPorSecao = filteredEtapas.reduce((acc, etapa) => {
+  const sortedEtapas = [...filteredEtapas].sort((a, b) => {
+    const dateA = new Date(a.data_publicado).getTime();
+    const dateB = new Date(b.data_publicado).getTime();
+    return isAscending ? dateA - dateB : dateB - dateA;
+  });
+
+  const etapasPorSecao = sortedEtapas.reduce((acc, etapa) => {
     if (!acc[etapa.secao]) {
       acc[etapa.secao] = [];
     }
@@ -92,25 +103,30 @@ export function ConcursoDetails() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <ThemeToggle theme={theme} onThemeChange={handleThemeChange} />
       
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 relative">
+        <div className="absolute right-4 top-0 z-10">
+          <ThemeToggle theme={theme} onThemeChange={handleThemeChange} />
+        </div>
+
         <div className="flex justify-between items-center mb-6">
-          <Link to="/" className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
-            <ArrowLeft size={20} className="mr-2" />
-            Voltar para lista
-          </Link>
-          <button
-            onClick={() => setShowCalendar(true)}
-            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-            title="Ver calendário de etapas"
-          >
-            <CalendarIcon size={24} />
-          </button>
+          <div className="flex items-center gap-4">
+            <Link to="/" className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+              <ArrowLeft size={20} className="mr-2" />
+              Voltar para lista
+            </Link>
+            <button
+              onClick={() => setShowCalendar(true)}
+              className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              <CalendarIcon size={20} className="mr-2" />
+              Cronograma
+            </button>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 mb-8">
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{concurso.concurso}</h1>
             <StatusBadge status={concurso.status} />
           </div>
@@ -147,49 +163,104 @@ export function ConcursoDetails() {
             </div>
           </div>
 
-          <StageFilters
-            filters={filters}
-            secoes={uniqueSecoes}
-            onFilterChange={handleFilterChange}
-          />
-
-          <div className="space-y-8">
-            {Object.entries(etapasPorSecao).map(([secao, etapasSecao]) => (
-              <div key={secao} className="border-t dark:border-gray-700 pt-6">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{secao}</h2>
-                <div className="space-y-4">
-                  {etapasSecao.map((etapa) => (
-                    <div key={etapa.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-gray-800 dark:text-white mb-2">{etapa.etapa}</h3>
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center text-gray-600 dark:text-gray-300">
-                          <CalendarIcon size={16} className="mr-1" />
-                          {new Date(etapa.data_publicado).toLocaleDateString('pt-BR')}
-                        </div>
-                        {etapa.link && (
-                          <a
-                            href={etapa.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                          >
-                            <ExternalLink size={16} className="mr-1" />
-                            Acessar
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Buscar etapas..."
+                    value={filters.etapa}
+                    onChange={(e) => handleFilterChange('etapa', e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  />
                 </div>
+                <select
+                  value={filters.secao}
+                  onChange={(e) => handleFilterChange('secao', e.target.value)}
+                  className="w-48 px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">Todas as seções</option>
+                  {uniqueSecoes.map((secao) => (
+                    <option key={secao} value={secao}>
+                      {secao}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ))}
+              
+              <div className="flex gap-4 items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">De:</span>
+                  <input
+                    type="date"
+                    value={filters.dataInicio}
+                    onChange={(e) => handleFilterChange('dataInicio', e.target.value)}
+                    className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Até:</span>
+                  <input
+                    type="date"
+                    value={filters.dataFim}
+                    onChange={(e) => handleFilterChange('dataFim', e.target.value)}
+                    className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <button
+                  onClick={() => setIsAscending(!isAscending)}
+                  className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+                  title={isAscending ? "Ordenar do mais recente" : "Ordenar do mais antigo"}
+                >
+                  <ArrowUpDown size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              EDITAIS, COMUNICADOS E INFORMAÇÕES
+            </h2>
+            <div className="space-y-8">
+              {Object.entries(etapasPorSecao).map(([secao, etapasSecao]) => (
+                <div key={secao} className="border-t dark:border-gray-700 pt-6">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{secao}</h2>
+                  <div className="space-y-4">
+                    {etapasSecao.map((etapa) => (
+                      <div key={etapa.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-gray-800 dark:text-white mb-2">{etapa.etapa}</h3>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <div className="flex items-center text-gray-600 dark:text-gray-300">
+                            <CalendarIcon size={16} className="mr-1" />
+                            {new Date(etapa.data_publicado).toLocaleDateString('pt-BR')}
+                          </div>
+                          {etapa.link && (
+                            <a
+                              href={etapa.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                            >
+                              <ExternalLink size={16} className="mr-1" />
+                              Acessar
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {showCalendar && (
-        <Calendar etapas={etapas} onClose={() => setShowCalendar(false)} />
-      )}
+        {showCalendar && (
+          <Calendar etapas={etapas} onClose={() => setShowCalendar(false)} />
+        )}
+      </div>
     </div>
   );
 }
