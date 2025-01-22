@@ -12,7 +12,14 @@ export function ConcursoCard({ concurso }: ConcursoCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-4">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{concurso.concurso}</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{concurso.concurso}</h2>
+          {concurso.banca && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+              {concurso.banca.banca}
+            </span>
+          )}
+        </div>
         <StatusBadge status={concurso.status} />
       </div>
       

@@ -3,36 +3,53 @@ import { supabase } from '../lib/supabase';
 import { Filters } from '../components/Filters';
 import { ConcursoCard } from '../components/ConcursoCard';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { Concurso, Theme } from '../types';
+import { Concurso, Theme, Banca } from '../types';
 
 export function Home() {
   const [concursos, setConcursos] = useState<Concurso[]>([]);
-  const [theme, setTheme] = useState<Theme>('light');
+  const [bancas, setBancas] = useState<Banca[]>([]);
+  const [theme, setTheme] = useState<Theme>('dark');
   const [filters, setFilters] = useState({
     search: '',
     status: '',
     salarioMin: '',
     salarioMax: '',
     sortBy: '',
+    banca: '',
   });
 
   useEffect(() => {
     loadConcursos();
+    loadBancas();
     
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme) {
       setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else {
+      setTheme('dark');
+      localStorage.setItem('theme', 'dark');
     }
+    document.documentElement.classList.toggle('dark', true);
   }, []);
 
   async function loadConcursos() {
     const { data } = await supabase
       .from('dConcursos')
-      .select('*');
+      .select('*, banca:dBancas(id, banca)');
 
     if (data) {
       setConcursos(data);
+    }
+  }
+
+  async function loadBancas() {
+    const { data: bancasData } = await supabase
+      .from('dBancas')
+      .select('*')
+      .order('banca');
+
+    if (bancasData) {
+      setBancas(bancasData);
     }
   }
 
@@ -50,10 +67,11 @@ export function Home() {
     .filter((concurso) => {
       const matchesSearch = concurso.concurso.toLowerCase().includes(filters.search.toLowerCase());
       const matchesStatus = !filters.status || concurso.status === filters.status;
-      const matchesSalarioMin = !filters.salarioMin || concurso.salario_max >= Number(filters.salarioMin);
-      const matchesSalarioMax = !filters.salarioMax || concurso.salario_max <= Number(filters.salarioMax);
+      const matchesSalarioMin = !filters.salarioMin || concurso.salario_max >= parseFloat(filters.salarioMin);
+      const matchesSalarioMax = !filters.salarioMax || concurso.salario_max <= parseFloat(filters.salarioMax);
+      const matchesBanca = !filters.banca || concurso.id_banca.toString() === filters.banca;
 
-      return matchesSearch && matchesStatus && matchesSalarioMin && matchesSalarioMax;
+      return matchesSearch && matchesStatus && matchesSalarioMin && matchesSalarioMax && matchesBanca;
     })
     .sort((a, b) => {
       switch (filters.sortBy) {
@@ -72,12 +90,17 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <ThemeToggle theme={theme} onThemeChange={handleThemeChange} />
-      
-      <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8">Concursos Públicos</h1>
-        
-        <Filters filters={filters} onFilterChange={handleFilterChange} />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Concursos</h1>
+          <ThemeToggle theme={theme} onThemeChange={handleThemeChange} />
+        </div>
+
+        <Filters
+          filters={filters}
+          bancas={bancas}
+          onFilterChange={handleFilterChange}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredConcursos.map((concurso) => (

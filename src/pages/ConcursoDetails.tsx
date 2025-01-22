@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar as CalendarIcon, ExternalLink, ArrowUpDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Concurso, Etapa, Theme } from '../types';
+import { Concurso, Etapa, Theme, Banca } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { Calendar } from '../components/Calendar';
 import { StageFilters } from '../components/StageFilters';
@@ -39,7 +39,7 @@ export function ConcursoDetails() {
   async function loadConcurso() {
     const { data: concursoData } = await supabase
       .from('dConcursos')
-      .select('*, banca:dBancas(id, nome, sigla)')
+      .select('*, banca:dBancas(id, banca)')
       .eq('id', id)
       .single();
 
@@ -134,7 +134,7 @@ export function ConcursoDetails() {
               <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{concurso.concurso}</h1>
               {concurso.banca && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                  {concurso.banca.sigla || concurso.banca.nome}
+                  {concurso.banca.banca}
                 </span>
               )}
             </div>

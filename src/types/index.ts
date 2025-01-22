@@ -20,8 +20,7 @@ export interface Etapa {
 
 export interface Banca {
   id: number;
-  nome: string;
-  sigla: string;
+  banca: string;
 }
 
 export type Theme = 'light' | 'dark';
