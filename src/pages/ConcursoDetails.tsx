@@ -39,12 +39,15 @@ export function ConcursoDetails() {
   async function loadConcurso() {
     const { data: concursoData } = await supabase
       .from('dConcursos')
-      .select('*')
+      .select('*, banca:dBancas(id, nome, sigla)')
       .eq('id', id)
       .single();
 
     if (concursoData) {
-      setConcurso(concursoData);
+      setConcurso({
+        ...concursoData,
+        banca: concursoData.banca
+      });
     }
 
     const { data: etapasData } = await supabase
@@ -126,8 +129,15 @@ export function ConcursoDetails() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{concurso.concurso}</h1>
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{concurso.concurso}</h1>
+              {concurso.banca && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                  {concurso.banca.sigla || concurso.banca.nome}
+                </span>
+              )}
+            </div>
             <StatusBadge status={concurso.status} />
           </div>
 

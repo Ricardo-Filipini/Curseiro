@@ -5,6 +5,8 @@ export interface Concurso {
   salario_max: number;
   link: string;
   status: string;
+  id_banca: number;
+  banca?: Banca;
 }
 
 export interface Etapa {
@@ -14,6 +16,12 @@ export interface Etapa {
   etapa: string;
   data_publicado: string;
   link: string;
+}
+
+export interface Banca {
+  id: number;
+  nome: string;
+  sigla: string;
 }
 
 export type Theme = 'light' | 'dark';
